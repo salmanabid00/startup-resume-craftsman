@@ -52,10 +52,197 @@ const Index = () => {
   };
 
   const handleDownload = (type: 'resume' | 'coverLetter') => {
-    // This would integrate with a PDF generation library in a real implementation
+    const element = document.createElement('a');
+    const content = type === 'resume' ? generateResumeHTML() : generateCoverLetterHTML();
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    element.href = url;
+    element.download = `${formData.personalInfo.fullName || 'Resume'}_${type}.html`;
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+    URL.revokeObjectURL(url);
+    
     console.log(`Downloading ${type} for ${formData.personalInfo.fullName}`);
-    // For now, we'll show a toast notification
-    alert(`${type === 'resume' ? 'Resume' : 'Cover Letter'} download initiated!`);
+  };
+
+  const generateResumeHTML = () => {
+    const formatDate = (dateString: string) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    };
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${formData.personalInfo.fullName || 'Resume'}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { border-bottom: 2px solid #1e293b; padding-bottom: 15px; margin-bottom: 20px; }
+        .name { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
+        .contact { display: flex; flex-wrap: wrap; gap: 15px; }
+        .section { margin-bottom: 25px; }
+        .section-title { font-size: 18px; font-weight: bold; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 15px; }
+        .experience-item { margin-bottom: 20px; }
+        .job-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .job-title { font-weight: bold; }
+        .company { font-weight: 600; color: #475569; }
+        .date { color: #64748b; }
+        .technologies { font-style: italic; color: #64748b; margin-bottom: 8px; }
+        ul { margin: 8px 0; padding-left: 20px; }
+        .skills-category { margin-bottom: 10px; }
+        .skills-category strong { margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="name">${formData.personalInfo.fullName || 'Your Name'}</div>
+        <div class="contact">
+            ${formData.personalInfo.email ? `<span>📧 ${formData.personalInfo.email}</span>` : ''}
+            ${formData.personalInfo.phone ? `<span>📱 ${formData.personalInfo.phone}</span>` : ''}
+            ${formData.personalInfo.location ? `<span>📍 ${formData.personalInfo.location}</span>` : ''}
+            ${formData.personalInfo.github ? `<span>🐙 ${formData.personalInfo.github}</span>` : ''}
+            ${formData.personalInfo.linkedIn ? `<span>💼 ${formData.personalInfo.linkedIn}</span>` : ''}
+            ${formData.personalInfo.portfolio ? `<span>🌐 ${formData.personalInfo.portfolio}</span>` : ''}
+        </div>
+    </div>
+
+    ${(formData.technicalSkills.programmingLanguages.length > 0 || 
+       formData.technicalSkills.frameworks.length > 0 || 
+       formData.technicalSkills.tools.length > 0) ? `
+    <div class="section">
+        <div class="section-title">TECHNICAL SKILLS</div>
+        ${formData.technicalSkills.programmingLanguages.length > 0 ? `
+        <div class="skills-category">
+            <strong>Programming Languages:</strong>${formData.technicalSkills.programmingLanguages.join(', ')}
+        </div>` : ''}
+        ${formData.technicalSkills.frameworks.length > 0 ? `
+        <div class="skills-category">
+            <strong>Frameworks & Libraries:</strong>${formData.technicalSkills.frameworks.join(', ')}
+        </div>` : ''}
+        ${formData.technicalSkills.tools.length > 0 ? `
+        <div class="skills-category">
+            <strong>Development Tools:</strong>${formData.technicalSkills.tools.join(', ')}
+        </div>` : ''}
+        ${formData.technicalSkills.databases.length > 0 ? `
+        <div class="skills-category">
+            <strong>Databases:</strong>${formData.technicalSkills.databases.join(', ')}
+        </div>` : ''}
+        ${formData.technicalSkills.cloudPlatforms.length > 0 ? `
+        <div class="skills-category">
+            <strong>Cloud Platforms:</strong>${formData.technicalSkills.cloudPlatforms.join(', ')}
+        </div>` : ''}
+    </div>` : ''}
+
+    ${formData.experience.length > 0 ? `
+    <div class="section">
+        <div class="section-title">PROFESSIONAL EXPERIENCE</div>
+        ${formData.experience.map(exp => `
+        <div class="experience-item">
+            <div class="job-header">
+                <div>
+                    <div class="job-title">${exp.position}</div>
+                    <div class="company">${exp.company}</div>
+                </div>
+                <div class="date">${formatDate(exp.startDate)} - ${exp.current ? 'Present' : formatDate(exp.endDate)}</div>
+            </div>
+            ${exp.technologies.length > 0 ? `<div class="technologies">Technologies: ${exp.technologies.join(', ')}</div>` : ''}
+            <ul>
+                ${exp.achievements.filter(Boolean).map(achievement => `<li>${achievement}</li>`).join('')}
+            </ul>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${formData.projects.length > 0 ? `
+    <div class="section">
+        <div class="section-title">FEATURED PROJECTS</div>
+        ${formData.projects.map(project => `
+        <div class="experience-item">
+            <div class="job-header">
+                <div class="job-title">${project.name}</div>
+                <div class="date">
+                    ${project.githubUrl ? `GitHub: ${project.githubUrl}` : ''}
+                    ${project.liveUrl ? ` | Live: ${project.liveUrl}` : ''}
+                </div>
+            </div>
+            ${project.description ? `<div>${project.description}</div>` : ''}
+            ${project.technologies.length > 0 ? `<div class="technologies">Technologies: ${project.technologies.join(', ')}</div>` : ''}
+            <ul>
+                ${project.achievements.filter(Boolean).map(achievement => `<li>${achievement}</li>`).join('')}
+            </ul>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${formData.education.length > 0 ? `
+    <div class="section">
+        <div class="section-title">EDUCATION</div>
+        ${formData.education.map(edu => `
+        <div class="experience-item">
+            <div class="job-header">
+                <div>
+                    <div class="job-title">${edu.degree} in ${edu.field}</div>
+                    <div class="company">${edu.institution}</div>
+                    ${edu.gpa ? `<div>GPA: ${edu.gpa}</div>` : ''}
+                </div>
+                <div class="date">${formatDate(edu.startDate)} - ${formatDate(edu.endDate)}</div>
+            </div>
+            ${edu.achievements.filter(Boolean).length > 0 ? `
+            <ul>
+                ${edu.achievements.filter(Boolean).map(achievement => `<li>${achievement}</li>`).join('')}
+            </ul>` : ''}
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${formData.softSkills.length > 0 ? `
+    <div class="section">
+        <div class="section-title">CORE COMPETENCIES</div>
+        <div>${formData.softSkills.join(' • ')}</div>
+    </div>` : ''}
+</body>
+</html>`;
+  };
+
+  const generateCoverLetterHTML = () => {
+    const { personalInfo, experience, projects, targetRole } = formData;
+    const latestExperience = experience.length > 0 ? experience[0] : null;
+    const featuredProject = projects.length > 0 ? projects[0] : null;
+    
+    const coverLetterText = `Dear Hiring Manager,
+
+I am writing to express my strong interest in the ${targetRole.position || 'Software Engineer'} position at ${targetRole.company || 'your company'}. As an experienced software engineer with a proven track record of delivering high-quality solutions, I am excited about the opportunity to contribute to your innovative team.
+
+${latestExperience ? `In my most recent role as ${latestExperience.position} at ${latestExperience.company}, I have successfully ${latestExperience.achievements && latestExperience.achievements.length > 0 ? latestExperience.achievements[0].toLowerCase() : 'contributed to various technical projects'}. My expertise with ${latestExperience.technologies && latestExperience.technologies.length > 0 ? latestExperience.technologies.join(', ') : 'modern technologies'} has enabled me to drive significant improvements in application performance and user experience.` : 'With my software engineering background, I have consistently delivered high-quality solutions and contributed to successful project outcomes.'}
+
+${featuredProject ? `One of my notable achievements includes developing ${featuredProject.name}, where I ${featuredProject.description || 'built a comprehensive solution'}. This project demonstrates my ability to ${featuredProject.achievements && featuredProject.achievements.length > 0 ? featuredProject.achievements[0].toLowerCase() : 'deliver innovative solutions'} using ${featuredProject.technologies.join(', ')}.` : ''}
+
+What particularly excites me about ${targetRole.company || 'your company'} is your commitment to innovation and technical excellence. I am confident that my technical skills, problem-solving abilities, and passion for creating impactful solutions make me an ideal candidate for this role.
+
+${targetRole.jobDescription ? 'Based on the job description, I believe my experience aligns perfectly with your requirements, and I am eager to bring my expertise to help achieve your technical goals.' : ''}
+
+I would welcome the opportunity to discuss how my background and enthusiasm can contribute to your team's success. Thank you for considering my application.
+
+Best regards,
+${personalInfo.fullName || '[Your Name]'}`;
+
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cover Letter - ${personalInfo.fullName || 'Your Name'}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px; }
+        .content { white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <div class="content">${coverLetterText}</div>
+</body>
+</html>`;
   };
 
   return (
